@@ -1,0 +1,112 @@
+{
+  "name": "novel-reader",
+  "displayName": "Novel Reader",
+  "description": "小说阅读器:中文编码自动识别、只读、整页翻页、书签、章节、书库",
+  "version": "1.0.0",
+  "publisher": "ywy0",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:novelReader.sidebar",
+    "onCommand:novelReader.openFolder",
+    "onCommand:novelReader.importBook",
+    "onCommand:novelReader.importFolder",
+    "onCommand:novelReader.openBook",
+    "onCommand:novelReader.addBookmark",
+    "onCommand:novelReader.bookmarks",
+    "onCommand:novelReader.nextBookmark",
+    "onCommand:novelReader.prevBookmark",
+    "onCommand:novelReader.showBookmarks"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "novelReader.openFolder", "title": "Novel Reader: 打开/设置书库文件夹" },
+      { "command": "novelReader.importBook", "title": "Novel Reader: 导入一本小说" },
+      { "command": "novelReader.importFolder", "title": "Novel Reader: 批量导入小说文件夹" },
+      { "command": "novelReader.openBook", "title": "Novel Reader: 打开书籍" },
+      { "command": "novelReader.addBookmark", "title": "添加书签", "icon": "$(bookmark)" },
+      { "command": "novelReader.bookmarks", "title": "Novel Reader: 书签列表" },
+      { "command": "novelReader.nextBookmark", "title": "Novel Reader: 下一书签" },
+      { "command": "novelReader.prevBookmark", "title": "Novel Reader: 上一书签" },
+      { "command": "novelReader.showBookmarks", "title": "Novel Reader: 书签面板" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "novelReader", "title": "小说", "icon": "media/icon.svg" }
+      ]
+    },
+    "views": {
+      "novelReader": [
+        { "id": "novelReader.sidebar", "name": "小说阅读", "type": "webview", "icon": "media/icon.svg" }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "novelReader.addBookmark",
+          "group": "novel@1",
+          "when": "editorLangId == novel-reader"
+        }
+      ]
+    },
+    "keybindings": [
+      { "command": "novelReader.scrollUp", "key": "w", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollDown", "key": "s", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollUp", "key": "up", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollDown", "key": "down", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollUp", "key": "shift+space", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollDown", "key": "space", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollUp", "key": "pageup", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.scrollDown", "key": "pagedown", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.addBookmark", "key": "ctrl+alt+b", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.nextBookmark", "key": "alt+down", "when": "editorLangId == novel-reader && editorTextFocus" },
+      { "command": "novelReader.prevBookmark", "key": "alt+up", "when": "editorLangId == novel-reader && editorTextFocus" }
+    ],
+    "languages": [
+      { "id": "novel-reader", "aliases": ["Novel"], "extensions": [] }
+    ],
+    "configuration": {
+      "title": "Novel Reader",
+      "properties": {
+        "novelReader.folder": {
+          "type": "string",
+          "default": "",
+          "description": "书库文件夹路径(存放小说 txt,数据文件在其中的 .novel-reader 目录)"
+        },
+        "novelReader.pageLines": {
+          "type": "number",
+          "default": 0,
+          "description": "每次翻页的行数,0 = 按视口整页翻"
+        },
+        "novelReader.encoding": {
+          "type": "string",
+          "enum": ["auto", "utf-8", "gbk", "gb18030", "utf-16le"],
+          "default": "auto",
+          "description": "txt 文件编码,auto = 自动检测(UTF-8 BOM / UTF-16 BOM / 严格 UTF-8 / GBK 回退)"
+        },
+        "novelReader.disableCodeFeatures": {
+          "type": "boolean",
+          "default": true,
+          "description": "为小说文档关闭代码功能(悬停提示、小地图、代码透镜、补全等),重启生效"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.5.0"
+  }
+}
