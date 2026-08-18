@@ -1,9 +1,10 @@
-// extension.ts — 插件入口:虚拟文档、翻页、书签、侧边栏(书库/书签/章节)、语言设置
+// extension.ts — 插件入口:虚拟文档、翻页、书签、侧边栏(书库/书签/章节/主题)、语言设置
 import * as vscode from 'vscode';
 import { NovelContentProvider, SCHEME } from './provider';
 import { scrollPage, setSidebarRefresher as setReaderRefresher, openBook } from './reader';
 import { registerBookmarks, setSidebarRefresher as setBookmarkRefresher } from './bookmarks';
 import { SidebarProvider } from './sidebar';
+import { ThemeCycler } from './theme';
 
 /** 为 [novel-reader] 语言写入"阅读模式"设置(自动换行 + 关闭代码功能) */
 async function applyNovelEditorSettings(): Promise<void> {
@@ -52,8 +53,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, new NovelContentProvider())
   );
 
-  // 侧边栏(书库/书签/章节)
-  const sidebar = new SidebarProvider();
+  // 主题循环(默认 → 白底黑字 → 护眼绿)
+  const cycler = new ThemeCycler(context.globalState);
+  await cycler.init();
+
+  // 侧边栏(书库/书签/章节/主题)
+  const sidebar = new SidebarProvider(cycler);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('novelReader.sidebar', sidebar, {
       webviewOptions: { retainContextWhenHidden: true },

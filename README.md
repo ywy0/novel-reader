@@ -5,7 +5,7 @@ VS Code 小说阅读器:中文编码自动识别、只读、自动换行、整�
 ## 安装
 
 ```bash
-code --install-extension novel-reader-0.2.0.vsix
+code --install-extension novel-reader-1.2.0.vsix
 ```
 
 或:VS Code → 扩展面板 → `...` → 从 VSIX 安装。装完 **Reload Window**。
@@ -46,6 +46,7 @@ code --install-extension novel-reader-0.2.0.vsix
 | `Alt+↓` / `Alt+↑` | 下一 / 上一书签 |
 | 点击状态栏进度 | 打开书签面板 |
 | 关闭再打开 | 自动回到上次位置 |
+| 侧边栏「主题」按钮 | 循环切换:默认 → 白底黑字 → 护眼绿 → 默认(状态跨会话记忆) |
 
 ## 配置
 

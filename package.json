@@ -2,7 +2,7 @@
   "name": "novel-reader",
   "displayName": "Novel Reader",
   "description": "小说阅读器:中文编码自动识别、只读、整页翻页、书签、章节、书库",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "publisher": "ywy0",
   "license": "MIT",
   "engines": {

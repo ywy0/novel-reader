@@ -5,6 +5,7 @@ import * as path from 'path';
 import { novelFolder, readBookData, writeBookData, Bookmark } from './datafile';
 import { currentBookPath } from './bookmarks';
 import { currentChapterIndex } from './chapters';
+import { ThemeCycler } from './theme';
 
 type Tab = 'bookmark' | 'chapter';
 
@@ -59,6 +60,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private tab: Tab = 'bookmark';
 
+  constructor(private readonly cycler: ThemeCycler) {}
+
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
@@ -80,6 +83,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         break;
       case 'setTab':
         this.tab = msg.tab === 'chapter' ? 'chapter' : 'bookmark';
+        this.refresh();
+        break;
+      case 'cycleTheme':
+        await this.cycler.cycle();
         this.refresh();
         break;
       case 'jumpBookmark':
@@ -146,6 +153,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       folder,
       books: books.map(b => ({ rel: b.rel, abs: b.abs })),
       tab: this.tab,
+      themeLabel: this.cycler.label(),
       current: cur,
       bookmarks,
       chapters: data?.chapters ?? [],
@@ -201,6 +209,7 @@ body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg)
   <div class="tabs">
     <button id="tab-bookmark">书签</button>
     <button id="tab-chapter">章节</button>
+    <button id="tab-theme">主题</button>
   </div>
   <div id="items"></div>
 <script>
@@ -228,6 +237,7 @@ function renderItems(data) {
   box.innerHTML = '';
   document.getElementById('tab-bookmark').className = data.tab === 'bookmark' ? 'active' : '';
   document.getElementById('tab-chapter').className = data.tab === 'chapter' ? 'active' : '';
+  document.getElementById('tab-theme').textContent = data.themeLabel || '主题';
   if (!data.current) { box.appendChild(el('div', 'empty', '打开一本小说后,这里显示书签/章节')); return; }
   if (data.tab === 'bookmark') {
     if (!data.bookmarks.length) { box.appendChild(el('div', 'empty', '暂无书签。在小说里右键可添加书签,停留5秒的位置会自动记录')); return; }
@@ -265,6 +275,7 @@ document.getElementById('imp1').onclick = () => vscode.postMessage({ type: 'impo
 document.getElementById('impf').onclick = () => vscode.postMessage({ type: 'importFolder' });
 document.getElementById('tab-bookmark').onclick = () => { state.tab = 'bookmark'; vscode.postMessage({ type: 'setTab', tab: 'bookmark' }); };
 document.getElementById('tab-chapter').onclick = () => { state.tab = 'chapter'; vscode.postMessage({ type: 'setTab', tab: 'chapter' }); };
+document.getElementById('tab-theme').onclick = () => vscode.postMessage({ type: 'cycleTheme' });
 window.addEventListener('message', ev => {
   const data = ev.data;
   if (data.type === 'render') {
