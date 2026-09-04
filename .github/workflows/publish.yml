@@ -1,0 +1,41 @@
+name: Publish VS Code Extension
+
+on:
+  workflow_dispatch:          # 支持在 Actions 页面手动点击运行
+  push:
+    tags:                     # 打 v1.2.0 这类标签时自动发布
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: 编译 TypeScript
+        run: npm run compile
+
+      - name: 打包生成 .vsix
+        run: npx @vscode/vsce package --out novel-reader.vsix
+
+      - name: 上传安装包作为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: novel-reader.vsix
+          path: novel-reader.vsix
+
+      - name: 发布到 VS Code Marketplace
+        run: npx @vscode/vsce publish --packagePath novel-reader.vsix -p "${{ secrets.TOKEN }}"
