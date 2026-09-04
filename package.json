@@ -2,7 +2,7 @@
   "name": "novel-reader-ywy0",
   "displayName": "Novel Reader (ywy0)",
   "description": "小说阅读器:中文编码自动识别、只读、整页翻页、书签、章节、书库",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "publisher": "ywy0",
   "license": "MIT",
   "repository": {
@@ -15,6 +15,32 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "novel",
+    "reader",
+    "novel-reader",
+    "小说",
+    "小说阅读器",
+    "阅读",
+    "电子书",
+    "书签",
+    "章节",
+    "书库",
+    "txt",
+    "编码识别",
+    "gbk",
+    "gb18030",
+    "utf-8",
+    "编码",
+    "中文",
+    "阅读模式",
+    "翻页"
+  ],
+  "galleryBanner": {
+    "color": "#f4edd8",
+    "theme": "light"
+  },
+  "pricing": "Free",
   "activationEvents": [
     "onView:novelReader.sidebar",
     "onCommand:novelReader.openFolder",
@@ -103,6 +129,7 @@
     }
   },
   "scripts": {
+    "vscode:prepublish": "tsc -p ./",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "package": "vsce package"
