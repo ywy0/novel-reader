@@ -31,14 +31,26 @@ export function novelFolder(): string {
 /** 数据文件路径:<书库>/.novel-reader/<相对路径用 __ 连接>.novel-reader */
 export function dataFilePath(bookPath: string): string {
   const folder = novelFolder();
+  if (!folder) throw new Error('尚未设置书库文件夹');
+  const rel = path.relative(folder, bookPath);
+  if (!rel || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+    throw new Error('书籍不在当前书库中');
+  }
+  const name = rel.replace(/\.txt$/i, '') + '.novel-reader';
+  return path.join(folder, '.novel-reader', name);
+}
+
+function legacyDataFilePath(bookPath: string): string {
+  const folder = novelFolder();
   const rel = path.relative(folder, bookPath).replace(/[\\/]/g, '__');
-  const name = rel.replace(/\.txt$/i, '');
-  return path.join(folder, '.novel-reader', name + '.novel-reader');
+  return path.join(folder, '.novel-reader', rel.replace(/\.txt$/i, '') + '.novel-reader');
 }
 
 export function readBookData(bookPath: string): BookData {
   try {
-    const raw = fs.readFileSync(dataFilePath(bookPath), 'utf8');
+    const file = dataFilePath(bookPath);
+    const legacy = legacyDataFilePath(bookPath);
+    const raw = fs.readFileSync(fs.existsSync(file) ? file : legacy, 'utf8');
     const j = JSON.parse(raw) as BookData;
     return { ...EMPTY_DATA, ...j, bookmarks: j.bookmarks ?? [], chapters: j.chapters ?? [] };
   } catch {
@@ -49,5 +61,12 @@ export function readBookData(bookPath: string): BookData {
 export function writeBookData(bookPath: string, data: BookData): void {
   const file = dataFilePath(bookPath);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  const temp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, JSON.stringify(data, null, 2), 'utf8');
+  try {
+    fs.renameSync(temp, file);
+  } catch {
+    fs.copyFileSync(temp, file);
+    fs.unlinkSync(temp);
+  }
 }

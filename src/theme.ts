@@ -7,6 +7,7 @@ const GREEN_BG = '#C7EDCC';                   // 护眼绿背景(豆沙绿)
 
 const KEY_MODE = 'novel-reader.themeMode';
 const KEY_CUSTOM = 'novel-reader.savedColorCustomizations';
+const KEY_THEME = 'novel-reader.savedColorTheme';
 
 export const THEME_LABELS = ['主题 · 默认', '主题 · 白底', '主题 · 护眼绿'];
 
@@ -23,7 +24,7 @@ export class ThemeCycler {
 
   /** 激活时应用已保存的模式(跨会话保持) */
   async init(): Promise<void> {
-    await this.apply(this.mode);
+    if (this.mode !== 0) await this.apply(this.mode);
   }
 
   /** 点击一次 → 下一档,循环 */
@@ -37,9 +38,13 @@ export class ThemeCycler {
     const wb = vscode.workspace.getConfiguration('workbench');
     const global = vscode.ConfigurationTarget.Global;
 
+    if (mode !== 0 && !this.memento.get<string>(KEY_THEME)) {
+      await this.memento.update(KEY_THEME, wb.get<string>('colorTheme'));
+    }
+
     if (mode === 2) {
       // 护眼绿:基座用浅色主题(黑字),编辑器背景换成护眼绿;先保存用户原有自定义
-      if (!this.memento.get<unknown>(KEY_CUSTOM)) {
+      if (!this.memento.keys().includes(KEY_CUSTOM)) {
         await this.memento.update(KEY_CUSTOM, wb.get<Record<string, unknown>>('colorCustomizations') ?? null);
       }
       await wb.update('colorTheme', LIGHT_THEME, global);
@@ -52,7 +57,12 @@ export class ThemeCycler {
         await wb.update('colorCustomizations', Object.keys(saved).length ? saved : undefined, global);
         await this.memento.update(KEY_CUSTOM, undefined);
       }
-      await wb.update('colorTheme', mode === 0 ? DEFAULT_THEME : LIGHT_THEME, global);
+      if (mode === 0) {
+        await wb.update('colorTheme', this.memento.get<string>(KEY_THEME, DEFAULT_THEME), global);
+        await this.memento.update(KEY_THEME, undefined);
+      } else {
+        await wb.update('colorTheme', LIGHT_THEME, global);
+      }
     }
   }
 }

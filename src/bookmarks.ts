@@ -52,15 +52,22 @@ export function registerBookmarks(ctx: vscode.ExtensionContext): void {
   // —— 5 秒停留自动书签 + 阅读位置记录 ——
   let currentLine = -1;
   let lineSince = 0;
+  let currentPath: string | undefined;
 
-  function flushStay(path: string, now: number): void {
-    if (currentLine < 0) return;
+  function documentFor(path: string): vscode.TextDocument | undefined {
+    return vscode.workspace.textDocuments.find(doc =>
+      doc.uri.scheme === 'novel-reader' && realPathOf(doc.uri) === path);
+  }
+
+  function flushStay(now: number): void {
+    if (!currentPath || currentLine < 0) return;
     if (now - lineSince >= STAY_MS) {
-      const data = readBookData(path);
-      data.autoBookmark = { line: currentLine, text: lineText(vscode.window.activeTextEditor?.document, currentLine), time: lineSince };
-      writeBookData(path, data);
+      const data = readBookData(currentPath);
+      data.autoBookmark = { line: currentLine, text: lineText(documentFor(currentPath), currentLine), time: lineSince };
+      writeBookData(currentPath, data);
     }
     currentLine = -1;
+    currentPath = undefined;
   }
 
   ctx.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(e => {
@@ -68,8 +75,9 @@ export function registerBookmarks(ctx: vscode.ExtensionContext): void {
     const path = realPathOf(e.textEditor.document.uri);
     const line = e.selections[0]?.active.line ?? -1;
     const now = Date.now();
-    if (line !== currentLine) {
-      flushStay(path, now);
+    if (path !== currentPath || line !== currentLine) {
+      flushStay(now);
+      currentPath = path;
       currentLine = line;
       lineSince = now;
     }
@@ -88,9 +96,13 @@ export function registerBookmarks(ctx: vscode.ExtensionContext): void {
 
   ctx.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => {
     if (doc.uri.scheme !== 'novel-reader') return;
-    flushStay(realPathOf(doc.uri), Date.now());
+    if (realPathOf(doc.uri) === currentPath) flushStay(Date.now());
     refreshSidebar();
   }));
+  ctx.subscriptions.push({ dispose: () => {
+    if (timer) clearTimeout(timer);
+    flushStay(Date.now());
+  }});
 
   // —— 手动添加书签(右键 / Ctrl+Alt+B) ——
   ctx.subscriptions.push(vscode.commands.registerCommand('novelReader.addBookmark', () => {

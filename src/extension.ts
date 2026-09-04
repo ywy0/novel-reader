@@ -76,8 +76,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // 打开书籍(侧边栏跳转带 line)
   context.subscriptions.push(vscode.commands.registerCommand('novelReader.openBook', (filePath: string, line?: number) => {
-    openBook(filePath, line);
+    return openBook(filePath, line);
   }));
+  context.subscriptions.push(vscode.commands.registerCommand('novelReader.openFolder', () => sidebar.setLibraryFolder()));
+  context.subscriptions.push(vscode.commands.registerCommand('novelReader.importBook', () => sidebar.importBook()));
+  context.subscriptions.push(vscode.commands.registerCommand('novelReader.importFolder', () => sidebar.importFolder()));
+  context.subscriptions.push(vscode.commands.registerCommand('novelReader.bookmarks', () =>
+    vscode.commands.executeCommand('novelReader.showBookmarks')));
 
   // 书签(5 秒自动书签 + 右键添加 + 状态栏)
   registerBookmarks(context);

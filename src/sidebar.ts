@@ -11,32 +11,36 @@ type Tab = 'bookmark' | 'chapter';
 
 interface BookEntry { rel: string; abs: string; }
 
-function collectTxt(dir: string): BookEntry[] {
+function collectTxt(dir: string, rootDir = dir): BookEntry[] {
   const out: BookEntry[] = [];
   let entries: fs.Dirent[];
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
   for (const e of entries) {
     const abs = path.join(dir, e.name);
     if (e.isDirectory()) {
-      out.push(...collectTxt(abs));
+      if (e.name !== '.novel-reader') out.push(...collectTxt(abs, rootDir));
     } else if (e.isFile() && /\.txt$/i.test(e.name)) {
-      out.push({ rel: path.relative(dir, abs), abs });
+      out.push({ rel: path.relative(rootDir, abs), abs });
     }
   }
   return out.sort((a, b) => a.rel.localeCompare(b.rel, 'zh'));
 }
 
-function copyTxtRecursive(srcDir: string, destDir: string): number {
+function copyTxtRecursive(srcDir: string, destDir: string, rootDir = srcDir): number {
   let count = 0;
   for (const e of fs.readdirSync(srcDir, { withFileTypes: true })) {
     const src = path.join(srcDir, e.name);
     if (e.isDirectory()) {
-      count += copyTxtRecursive(src, destDir);
+      // 目标书库位于源目录内时，禁止递归进入目标目录。
+      if (path.resolve(src) !== path.resolve(destDir)) {
+        count += copyTxtRecursive(src, destDir, rootDir);
+      }
     } else if (e.isFile() && /\.txt$/i.test(e.name)) {
-      const rel = path.relative(srcDir, src);
+      const rel = path.relative(rootDir, src);
       const dest = path.join(destDir, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.copyFileSync(src, dest);
+      if (path.resolve(src) === path.resolve(dest)) continue;
+      fs.copyFileSync(src, dest, fs.constants.COPYFILE_EXCL);
       count++;
     }
   }
@@ -53,8 +57,6 @@ async function ensureFolder(): Promise<string | undefined> {
   }
   return folder;
 }
-
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
@@ -99,7 +101,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async importBook(): Promise<void> {
+  async setLibraryFolder(): Promise<void> {
+    const picked = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: '设为书库文件夹' });
+    if (!picked?.length) return;
+    await vscode.workspace.getConfiguration('novelReader').update('folder', picked[0].fsPath, vscode.ConfigurationTarget.Global);
+    this.refresh();
+  }
+
+  async importBook(): Promise<void> {
     const picked = await vscode.window.showOpenDialog({
       canSelectFiles: true, canSelectFolders: false,
       filters: { '文本文件': ['txt'] },
@@ -109,19 +118,32 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const folder = await ensureFolder();
     if (!folder) return;
     const dest = path.join(folder, path.basename(picked[0].fsPath));
-    fs.copyFileSync(picked[0].fsPath, dest);
+    try {
+      if (path.resolve(picked[0].fsPath) !== path.resolve(dest)) {
+        fs.copyFileSync(picked[0].fsPath, dest, fs.constants.COPYFILE_EXCL);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`导入失败，目标文件可能已存在: ${message}`);
+      return;
+    }
     vscode.window.showInformationMessage(`已导入: ${path.basename(dest)}`);
     this.refresh();
     await vscode.commands.executeCommand('novelReader.openBook', dest);
   }
 
-  private async importFolder(): Promise<void> {
+  async importFolder(): Promise<void> {
     const picked = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: '导入这个文件夹' });
     if (!picked?.length) return;
     const folder = await ensureFolder();
     if (!folder) return;
-    const count = copyTxtRecursive(picked[0].fsPath, folder);
-    vscode.window.showInformationMessage(`批量导入完成: ${count} 本`);
+    try {
+      const count = copyTxtRecursive(picked[0].fsPath, folder);
+      vscode.window.showInformationMessage(`批量导入完成: ${count} 本`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`批量导入中止，目标文件可能已存在: ${message}`);
+    }
     this.refresh();
   }
 

@@ -22,7 +22,7 @@ export function parseChapters(doc: vscode.TextDocument): Chapter[] {
 /** 根据行号定位当前章节(最后一行 ≤ 目标行 的章节) */
 export function currentChapterIndex(chapters: Chapter[], line: number): number {
   if (!chapters.length) return -1;
-  let idx = 0;
+  let idx = -1;
   for (let i = 0; i < chapters.length; i++) {
     if (chapters[i].line <= line) idx = i;
   }
