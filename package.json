@@ -5,6 +5,10 @@
   "version": "1.2.0",
   "publisher": "ywy0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ywy0/novel-reader.git"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
